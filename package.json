@@ -1,7 +1,7 @@
 {
-  "name": "3d-planet-orbit",
+  "name": "3d-orbit-simulation",
   "version": "1.0.0",
-  "description": "",
+  "description": "3D simulation of a planet orbiting a star",
   "main": "dist/index.js",
   "scripts": {
     "dev": "parcel index.html",

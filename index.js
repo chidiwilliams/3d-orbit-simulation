@@ -7,9 +7,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   const physics = (function() {
     const constants = {
       gravitationalConstant: 6.67408 * Math.pow(10, -11),
-      earthSunDistanceMeters: 1.496 * Math.pow(10, 11),
-      earthAngularVelocityMetersPerSecond: 1.990986 * Math.pow(10, -7),
-      massOfTheSunKg: 1.98855 * Math.pow(10, 30),
+      planetStarDistanceMeters: 1.496 * Math.pow(10, 11), // distance from earth to sun
+      planetAngularVelocityMetersPerSecond: 1.990986 * Math.pow(10, -7), // same as Earth's
+      massOfTheStarKg: 1.98855 * Math.pow(10, 30), // same as mass of sun
     };
 
     // The length of one AU (Earth-Sun distance) in screen dimensions.
@@ -18,7 +18,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     // A factor by which we scale the distance between the Sun and the Earth
     // in order to show it on screen
     const scaleFactor =
-      constants.earthSunDistanceMeters / pixelsInOneEarthSunDistancePerPixel;
+      constants.planetStarDistanceMeters / pixelsInOneEarthSunDistancePerPixel;
 
     // The number of calculations of orbital path done in one 16 millisecond frame.
     // The higher the number, the more precise are the calculations and the slower the simulation.
@@ -47,14 +47,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     const state = {
       distance: { value: 0, speed: 0 },
       angle: { value: 0, speed: 0 },
-      massOfTheSunKg: constants.massOfTheSunKg,
+      massOfTheStarKg: constants.massOfTheStarKg,
       paused: false,
     };
 
     function calculateDistanceAcceleration(state) {
       return (
         state.distance.value * Math.pow(state.angle.speed, 2) -
-        (constants.gravitationalConstant * state.massOfTheSunKg) /
+        (constants.gravitationalConstant * state.massOfTheStarKg) /
           Math.pow(state.distance.value, 2)
       );
     }
@@ -93,7 +93,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       }
     }
 
-    // Calculates position of the Earth
+    // Calculates position of the planet
     function calculateNewPosition() {
       // Calculate new distance
       const distanceAcceleration = calculateDistanceAcceleration(state);
@@ -126,9 +126,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       }
     }
 
-    // Updates the mass of the Sun
-    function updateFromUserInput(solarMassMultiplier) {
-      state.massOfTheSunKg = constants.massOfTheSunKg * solarMassMultiplier;
+    // Updates the mass of the Star
+    function updateFromUserInput(starMassMultiplier) {
+      state.massOfTheStarKg = constants.massOfTheStarKg * starMassMultiplier;
     }
 
     return {
@@ -146,7 +146,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   const graphics = (function() {
     let scene, camera, planet, star, renderer, controls;
 
-    function init(onChangeSolarMassMultiplier) {
+    function init(onChangeStarMassMultiplier) {
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(
         75,
@@ -162,38 +162,39 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
       controls = new OrbitControls(camera, renderer.domElement);
 
-      function createSphere(radius, x, y) {
-        const geometry = new THREE.SphereGeometry(radius, 15, 15);
-        const line = new THREE.LineSegments(geometry);
-        line.material.depthTest = false;
-        line.material.transparent = false;
-        line.position.x = x;
-        line.position.y = y;
-        return line;
-      }
-
       document.body.appendChild(renderer.domElement);
 
-      planet = createSphere(1, 18, 0);
+      planet = createSphere(0.25, 0, 0);
       scene.add(planet);
 
       star = createSphere(1, 0, 0);
       scene.add(star);
 
-      camera.position.z = 35;
+      camera.position.z = 27;
+      camera.position.y = 10;
 
-      initDatGUI(onChangeSolarMassMultiplier);
+      initDatGUI(onChangeStarMassMultiplier);
     }
 
-    function initDatGUI(onChangeSolarMassMultiplier) {
-      const guiParams = { solarMassMultiplier: 1 };
+    function createSphere(radius, x, y) {
+      const geometry = new THREE.SphereGeometry(radius, 15, 15);
+      const line = new THREE.LineSegments(geometry);
+      line.material.depthTest = false;
+      line.material.transparent = false;
+      line.position.x = x;
+      line.position.y = y;
+      return line;
+    }
+
+    function initDatGUI(onChangeStarMassMultiplier) {
+      const guiParams = { starMassMultiplier: 1 };
       const gui = new dat.GUI();
       gui
-        .add(guiParams, 'solarMassMultiplier', 0, 3)
-        .name('Mass of the Sun')
+        .add(guiParams, 'starMassMultiplier', 0, 3)
+        .name('Mass of the star')
         .setValue(1)
         .listen()
-        .onChange(onChangeSolarMassMultiplier);
+        .onChange(onChangeStarMassMultiplier);
       gui.open();
     }
 
@@ -243,14 +244,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     }
 
     function start() {
-      graphics.init(onChangeSolarMassMultiplier);
+      graphics.init(onChangeStarMassMultiplier);
       physics.resetStateToInitialConditions();
       animate();
     }
 
-    function onChangeSolarMassMultiplier(solarMassMultiplier) {
-      physics.updateFromUserInput(solarMassMultiplier);
-      graphics.updateSunSize(solarMassMultiplier);
+    function onChangeStarMassMultiplier(starMassMultiplier) {
+      physics.updateFromUserInput(starMassMultiplier);
+      graphics.updateSunSize(starMassMultiplier);
     }
 
     return { start };
