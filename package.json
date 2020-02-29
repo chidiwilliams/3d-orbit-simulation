@@ -1,0 +1,20 @@
+{
+  "name": "3d-planet-orbit",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "parcel index.html",
+    "build": "parcel build index.html --public-url .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Chidi Williams",
+  "license": "ISC",
+  "devDependencies": {
+    "parcel": "^1.12.4"
+  },
+  "dependencies": {
+    "dat.gui": "^0.7.6",
+    "three": "^0.113.2"
+  }
+}
