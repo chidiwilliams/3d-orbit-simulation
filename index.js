@@ -25,7 +25,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     const numberOfCalculationsPerFrame = 1000;
 
     // The length of the time increment, in seconds.
-    const deltaT = (3600 * 24) / numberOfCalculationsPerFrame;
+    const deltaT = (100 * 24) / numberOfCalculationsPerFrame;
 
     // Rotation of planet (in radians) in one 16 millisecond frame.
     const planetRotation = 0.05;
@@ -179,12 +179,18 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       camera.position.z = 15;
       camera.position.y = 5;
 
+      const sunLight = new THREE.PointLight(0xffffff, 2, 50);
+      scene.add(sunLight);
+
+      const ambientLight = new THREE.AmbientLight();
+      scene.add(ambientLight);
+
       initDatGUI(onChangeStarMassMultiplier);
     }
 
     function createSphere(radius, x, y, texture) {
       const geometry = new THREE.SphereGeometry(radius, 100, 100);
-      const material = new THREE.MeshBasicMaterial({
+      const material = new THREE.MeshPhongMaterial({
         map: texture,
       });
       const mesh = new THREE.Mesh(geometry, material);
