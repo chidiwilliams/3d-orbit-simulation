@@ -13,7 +13,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     };
 
     // The length of one AU (Earth-Sun distance) in screen dimensions.
-    const pixelsInOneEarthSunDistancePerPixel = 20;
+    const pixelsInOneEarthSunDistancePerPixel = 10;
 
     // A factor by which we scale the distance between the Sun and the Earth
     // in order to show it on screen
@@ -31,7 +31,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     const planetRotation = 0.05;
 
     // Rotation of star (in radians) in one 16 millisecond frame.
-    const starRotation = -0.01;
+    const starRotation = 0.01;
 
     const initialConditions = {
       distance: {
@@ -164,26 +164,31 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
       document.body.appendChild(renderer.domElement);
 
-      planet = createSphere(0.25, 0, 0);
+      const planetTexture = THREE.ImageUtils.loadTexture(
+        'textures/2k_earth_daymap.jpg',
+      );
+      planet = createSphere(0.25, 0, 0, planetTexture);
       scene.add(planet);
 
-      star = createSphere(1, 0, 0);
+      const starTexture = THREE.ImageUtils.loadTexture('textures/2k_sun.jpg');
+      star = createSphere(1, 0, 0, starTexture);
       scene.add(star);
 
-      camera.position.z = 27;
-      camera.position.y = 10;
+      camera.position.z = 15;
+      camera.position.y = 5;
 
       initDatGUI(onChangeStarMassMultiplier);
     }
 
-    function createSphere(radius, x, y) {
-      const geometry = new THREE.SphereGeometry(radius, 15, 15);
-      const line = new THREE.LineSegments(geometry);
-      line.material.depthTest = false;
-      line.material.transparent = false;
-      line.position.x = x;
-      line.position.y = y;
-      return line;
+    function createSphere(radius, x, y, texture) {
+      const geometry = new THREE.SphereGeometry(radius, 100, 100);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.x = x;
+      mesh.position.y = y;
+      return mesh;
     }
 
     function initDatGUI(onChangeStarMassMultiplier) {
