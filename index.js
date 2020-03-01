@@ -189,7 +189,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       scene.add(ambientLight);
 
       orbit = createOrbit();
-      scene.add(orbit);
 
       window.addEventListener('resize', onWindowResize);
     }
@@ -198,7 +197,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       const material = new THREE.LineBasicMaterial({ color: 0xffffff });
       const geometry = new THREE.Geometry();
       geometry.vertices = vertices;
-      return new THREE.Line(geometry, material);
+      const orbit = new THREE.Line(geometry, material);
+      scene.add(orbit);
+      return orbit;
     }
 
     function createSphere(radius, x, y, texture) {
@@ -268,12 +269,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
             vertices.shift();
           }
 
-          orbit.geometry.dispose();
-          orbit.material.dispose();
-          scene.remove(orbit);
-
+          disposeOrbit();
           orbit = createOrbit(vertices);
-          scene.add(orbit);
 
           previousEarthPositionWithOrbitPoint = earthPosition;
         }
@@ -303,9 +300,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     }
 
     function clearScene() {
-      scene.remove(orbit);
+      disposeOrbit();
       orbit = createOrbit();
-      scene.add(orbit);
+    }
+
+    function disposeOrbit() {
+      orbit.geometry.dispose();
+      orbit.material.dispose();
+      scene.remove(orbit);
     }
 
     return { drawScene, updateSunSize, init, clearScene };
