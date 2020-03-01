@@ -147,6 +147,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     let scene, camera, earth, sun, renderer, controls, orbit;
     let previousEarthPositionWithOrbitPoint = null;
     const maxNumberOfOrbitVertices = 1000;
+    const minimumOrbitVertexDistance = 0.1;
 
     function init(onChangeSunMassMultiplier) {
       const textureLoader = new THREE.TextureLoader();
@@ -191,6 +192,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       scene.add(orbit);
 
       initDatGUI(onChangeSunMassMultiplier);
+
+      window.addEventListener('resize', onWindowResize);
     }
 
     function createOrbit(vertices) {
@@ -261,7 +264,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
         const distance = earthPosition.distanceToSquared(
           previousEarthPositionWithOrbitPoint,
         );
-        if (distance > 0.2) {
+        if (distance > minimumOrbitVertexDistance) {
           const vertices = orbit.geometry.vertices;
           vertices.push(earthPosition);
           if (vertices.length === maxNumberOfOrbitVertices) {
@@ -273,6 +276,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
           previousEarthPositionWithOrbitPoint = earthPosition;
         }
       }
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     function updateSunSize(sliderValue) {
