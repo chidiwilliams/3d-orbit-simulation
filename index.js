@@ -149,8 +149,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     const maxNumberOfOrbitVertices = 1000;
 
     function init(onChangeSunMassMultiplier) {
+      const textureLoader = new THREE.TextureLoader();
+
       scene = new THREE.Scene();
-      scene.background = THREE.ImageUtils.loadTexture('textures/2k_stars.jpg');
+      scene.background = textureLoader.load('textures/2k_stars.jpg');
 
       camera = new THREE.PerspectiveCamera(
         75,
@@ -168,13 +170,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
       document.body.appendChild(renderer.domElement);
 
-      const earthTexture = THREE.ImageUtils.loadTexture(
-        'textures/2k_earth_daymap.jpg',
-      );
+      const earthTexture = textureLoader.load('textures/2k_earth_daymap.jpg');
       earth = createSphere(0.25, 0, 0, earthTexture);
       scene.add(earth);
 
-      const sunTexture = THREE.ImageUtils.loadTexture('textures/2k_sun.jpg');
+      const sunTexture = textureLoader.load('textures/2k_sun.jpg');
       sun = createSphere(1, 0, 0, sunTexture);
       scene.add(sun);
 
@@ -295,7 +295,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       requestAnimationFrame(animate);
     }
 
-    function sunt() {
+    function start() {
       graphics.init(onChangeSunMassMultiplier);
       physics.resetStateToInitialConditions();
       animate();
@@ -306,8 +306,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       graphics.updateSunSize(sunMassMultiplier);
     }
 
-    return { sunt };
+    return { start };
   })();
 
-  simulation.sunt();
+  simulation.start();
 })();
