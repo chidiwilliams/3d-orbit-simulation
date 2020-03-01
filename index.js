@@ -25,7 +25,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     const numberOfCalculationsPerFrame = 1000;
 
     // The length of the time increment, in seconds.
-    const deltaT = (100 * 24) / numberOfCalculationsPerFrame;
+    const deltaT = (3000 * 24) / numberOfCalculationsPerFrame;
 
     // Rotation of planet (in radians) in one 16 millisecond frame.
     const planetRotation = 0.05;
@@ -144,7 +144,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   })();
 
   const graphics = (function() {
-    let scene, camera, planet, star, renderer, controls;
+    let scene, camera, planet, star, renderer, controls, orbit;
+    let previousPlanetPositionWithOrbitPoint = null;
+    const maxNumberOfOrbitVertices = 1000;
 
     function init(onChangeStarMassMultiplier) {
       scene = new THREE.Scene();
@@ -185,11 +187,21 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       const ambientLight = new THREE.AmbientLight();
       scene.add(ambientLight);
 
+      orbit = createOrbit([]);
+      scene.add(orbit);
+
       initDatGUI(onChangeStarMassMultiplier);
     }
 
+    function createOrbit(vertices) {
+      const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+      const geometry = new THREE.Geometry();
+      geometry.vertices = vertices;
+      return new THREE.Line(geometry, material);
+    }
+
     function createSphere(radius, x, y, texture) {
-      const geometry = new THREE.SphereGeometry(radius, 100, 100);
+      const geometry = new THREE.SphereGeometry(radius, 200, 200);
       const material = new THREE.MeshPhongMaterial({
         map: texture,
       });
@@ -214,26 +226,53 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     function calculatePlanetPosition(distance, angle) {
       const x = Math.cos(angle) * distance;
       const y = Math.sin(-angle) * distance;
-      return { x, y };
+      return new THREE.Vector2(x, y);
     }
 
     function drawScene(distance, angle, planetRotation, starRotation) {
-      const planetPosition = calculatePlanetPosition(distance, angle);
+      const xyPlanetPosition = calculatePlanetPosition(distance, angle);
+      const planetPosition = normalizePlanetPosition(xyPlanetPosition);
       drawPlanet(planetPosition, planetRotation);
       drawStar(starRotation);
+      drawOrbit(planetPosition);
 
       renderer.render(scene, camera);
       controls.update();
     }
 
+    function normalizePlanetPosition(planetPosition) {
+      return new THREE.Vector3(planetPosition.x, 0, planetPosition.y);
+    }
+
     function drawPlanet(planetPosition, planetRotation) {
       planet.position.x = planetPosition.x;
-      planet.position.z = planetPosition.y;
+      planet.position.z = planetPosition.z;
       planet.rotation.y += planetRotation;
     }
 
     function drawStar(starRotation) {
       star.rotation.y += starRotation;
+    }
+
+    function drawOrbit(planetPosition) {
+      if (previousPlanetPositionWithOrbitPoint === null) {
+        previousPlanetPositionWithOrbitPoint = planetPosition;
+      } else {
+        const distance = planetPosition.distanceToSquared(
+          previousPlanetPositionWithOrbitPoint,
+        );
+        if (distance > 0.2) {
+          const vertices = orbit.geometry.vertices;
+          vertices.push(planetPosition);
+          if (vertices.length === maxNumberOfOrbitVertices) {
+            vertices.shift();
+          }
+          scene.remove(orbit);
+          orbit = createOrbit(vertices);
+          scene.add(orbit);
+          previousPlanetPositionWithOrbitPoint = planetPosition;
+        }
+      }
     }
 
     function updateSunSize(sliderValue) {
