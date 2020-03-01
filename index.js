@@ -270,9 +270,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
           if (vertices.length === maxNumberOfOrbitVertices) {
             vertices.shift();
           }
+
+          orbit.geometry.dispose();
+          orbit.material.dispose();
           scene.remove(orbit);
+
           orbit = createOrbit(vertices);
           scene.add(orbit);
+
           previousEarthPositionWithOrbitPoint = earthPosition;
         }
       }
