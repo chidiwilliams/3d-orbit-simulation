@@ -7,9 +7,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   const physics = (function() {
     const constants = {
       gravitationalConstant: 6.67408 * Math.pow(10, -11),
-      planetStarDistanceMeters: 1.496 * Math.pow(10, 11), // distance from earth to sun
-      planetAngularVelocityMetersPerSecond: 1.990986 * Math.pow(10, -7), // same as Earth's
-      massOfTheStarKg: 1.98855 * Math.pow(10, 30), // same as mass of sun
+      earthSunDistanceMeters: 1.496 * Math.pow(10, 11),
+      earthAngularVelocityMetersPerSecond: 1.990986 * Math.pow(10, -7),
+      massOfTheSunKg: 1.98855 * Math.pow(10, 30), // same as mass of sun
     };
 
     // The length of one AU (Earth-Sun distance) in screen dimensions.
@@ -18,7 +18,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     // A factor by which we scale the distance between the Sun and the Earth
     // in order to show it on screen
     const scaleFactor =
-      constants.planetStarDistanceMeters / pixelsInOneEarthSunDistancePerPixel;
+      constants.earthSunDistanceMeters / pixelsInOneEarthSunDistancePerPixel;
 
     // The number of calculations of orbital path done in one 16 millisecond frame.
     // The higher the number, the more precise are the calculations and the slower the simulation.
@@ -27,11 +27,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     // The length of the time increment, in seconds.
     const deltaT = (3000 * 24) / numberOfCalculationsPerFrame;
 
-    // Rotation of planet (in radians) in one 16 millisecond frame.
-    const planetRotation = 0.05;
+    // Rotation of earth (in radians) in one 16 millisecond frame.
+    const earthRotation = 0.05;
 
-    // Rotation of star (in radians) in one 16 millisecond frame.
-    const starRotation = 0.01;
+    // Rotation of sun (in radians) in one 16 millisecond frame.
+    const sunRotation = 0.01;
 
     const initialConditions = {
       distance: {
@@ -47,14 +47,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     const state = {
       distance: { value: 0, speed: 0 },
       angle: { value: 0, speed: 0 },
-      massOfTheStarKg: constants.massOfTheStarKg,
+      massOfTheSunKg: constants.massOfTheSunKg,
       paused: false,
     };
 
     function calculateDistanceAcceleration(state) {
       return (
         state.distance.value * Math.pow(state.angle.speed, 2) -
-        (constants.gravitationalConstant * state.massOfTheStarKg) /
+        (constants.gravitationalConstant * state.massOfTheSunKg) /
           Math.pow(state.distance.value, 2)
       );
     }
@@ -93,7 +93,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       }
     }
 
-    // Calculates position of the planet
+    // Calculates position of the earth
     function calculateNewPosition() {
       // Calculate new distance
       const distanceAcceleration = calculateDistanceAcceleration(state);
@@ -126,9 +126,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       }
     }
 
-    // Updates the mass of the Star
-    function updateFromUserInput(starMassMultiplier) {
-      state.massOfTheStarKg = constants.massOfTheStarKg * starMassMultiplier;
+    // Updates the mass of the Sun
+    function updateFromUserInput(sunMassMultiplier) {
+      state.massOfTheSunKg = constants.massOfTheSunKg * sunMassMultiplier;
     }
 
     return {
@@ -138,17 +138,17 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       initialConditions,
       updateFromUserInput,
       state,
-      planetRotation,
-      starRotation,
+      earthRotation,
+      sunRotation,
     };
   })();
 
   const graphics = (function() {
-    let scene, camera, planet, star, renderer, controls, orbit;
-    let previousPlanetPositionWithOrbitPoint = null;
+    let scene, camera, earth, sun, renderer, controls, orbit;
+    let previousEarthPositionWithOrbitPoint = null;
     const maxNumberOfOrbitVertices = 1000;
 
-    function init(onChangeStarMassMultiplier) {
+    function init(onChangeSunMassMultiplier) {
       scene = new THREE.Scene();
       scene.background = THREE.ImageUtils.loadTexture('textures/2k_stars.jpg');
 
@@ -168,15 +168,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
       document.body.appendChild(renderer.domElement);
 
-      const planetTexture = THREE.ImageUtils.loadTexture(
+      const earthTexture = THREE.ImageUtils.loadTexture(
         'textures/2k_earth_daymap.jpg',
       );
-      planet = createSphere(0.25, 0, 0, planetTexture);
-      scene.add(planet);
+      earth = createSphere(0.25, 0, 0, earthTexture);
+      scene.add(earth);
 
-      const starTexture = THREE.ImageUtils.loadTexture('textures/2k_sun.jpg');
-      star = createSphere(1, 0, 0, starTexture);
-      scene.add(star);
+      const sunTexture = THREE.ImageUtils.loadTexture('textures/2k_sun.jpg');
+      sun = createSphere(1, 0, 0, sunTexture);
+      scene.add(sun);
 
       camera.position.z = 15;
       camera.position.y = 5;
@@ -190,7 +190,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       orbit = createOrbit([]);
       scene.add(orbit);
 
-      initDatGUI(onChangeStarMassMultiplier);
+      initDatGUI(onChangeSunMassMultiplier);
     }
 
     function createOrbit(vertices) {
@@ -211,73 +211,73 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       return mesh;
     }
 
-    function initDatGUI(onChangeStarMassMultiplier) {
-      const guiParams = { starMassMultiplier: 1 };
+    function initDatGUI(onChangeSunMassMultiplier) {
+      const guiParams = { sunMassMultiplier: 1 };
       const gui = new dat.GUI();
       gui
-        .add(guiParams, 'starMassMultiplier', 0, 3)
-        .name('Mass of the star')
+        .add(guiParams, 'sunMassMultiplier', 0, 3)
+        .name('Mass of the sun')
         .setValue(1)
         .listen()
-        .onChange(onChangeStarMassMultiplier);
+        .onChange(onChangeSunMassMultiplier);
       gui.open();
     }
 
-    function calculatePlanetPosition(distance, angle) {
+    function calculateEarthPosition(distance, angle) {
       const x = Math.cos(angle) * distance;
       const y = Math.sin(-angle) * distance;
       return new THREE.Vector2(x, y);
     }
 
-    function drawScene(distance, angle, planetRotation, starRotation) {
-      const xyPlanetPosition = calculatePlanetPosition(distance, angle);
-      const planetPosition = normalizePlanetPosition(xyPlanetPosition);
-      drawPlanet(planetPosition, planetRotation);
-      drawStar(starRotation);
-      drawOrbit(planetPosition);
+    function drawScene(distance, angle, earthRotation, sunRotation) {
+      const xyEarthPosition = calculateEarthPosition(distance, angle);
+      const earthPosition = normalizeEarthPosition(xyEarthPosition);
+      drawEarth(earthPosition, earthRotation);
+      drawSun(sunRotation);
+      drawOrbit(earthPosition);
 
       renderer.render(scene, camera);
       controls.update();
     }
 
-    function normalizePlanetPosition(planetPosition) {
-      return new THREE.Vector3(planetPosition.x, 0, planetPosition.y);
+    function normalizeEarthPosition(earthPosition) {
+      return new THREE.Vector3(earthPosition.x, 0, earthPosition.y);
     }
 
-    function drawPlanet(planetPosition, planetRotation) {
-      planet.position.x = planetPosition.x;
-      planet.position.z = planetPosition.z;
-      planet.rotation.y += planetRotation;
+    function drawEarth(earthPosition, earthRotation) {
+      earth.position.x = earthPosition.x;
+      earth.position.z = earthPosition.z;
+      earth.rotation.y += earthRotation;
     }
 
-    function drawStar(starRotation) {
-      star.rotation.y += starRotation;
+    function drawSun(sunRotation) {
+      sun.rotation.y += sunRotation;
     }
 
-    function drawOrbit(planetPosition) {
-      if (previousPlanetPositionWithOrbitPoint === null) {
-        previousPlanetPositionWithOrbitPoint = planetPosition;
+    function drawOrbit(earthPosition) {
+      if (previousEarthPositionWithOrbitPoint === null) {
+        previousEarthPositionWithOrbitPoint = earthPosition;
       } else {
-        const distance = planetPosition.distanceToSquared(
-          previousPlanetPositionWithOrbitPoint,
+        const distance = earthPosition.distanceToSquared(
+          previousEarthPositionWithOrbitPoint,
         );
         if (distance > 0.2) {
           const vertices = orbit.geometry.vertices;
-          vertices.push(planetPosition);
+          vertices.push(earthPosition);
           if (vertices.length === maxNumberOfOrbitVertices) {
             vertices.shift();
           }
           scene.remove(orbit);
           orbit = createOrbit(vertices);
           scene.add(orbit);
-          previousPlanetPositionWithOrbitPoint = planetPosition;
+          previousEarthPositionWithOrbitPoint = earthPosition;
         }
       }
     }
 
     function updateSunSize(sliderValue) {
-      star.geometry.dispose();
-      star.geometry = new THREE.SphereGeometry(sliderValue, 15, 15);
+      sun.geometry.dispose();
+      sun.geometry = new THREE.SphereGeometry(sliderValue, 15, 15);
     }
 
     return { drawScene, updateSunSize, init };
@@ -289,25 +289,25 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       graphics.drawScene(
         physics.scaledDistance(),
         physics.state.angle.value,
-        physics.planetRotation,
-        physics.starRotation,
+        physics.earthRotation,
+        physics.sunRotation,
       );
       requestAnimationFrame(animate);
     }
 
-    function start() {
-      graphics.init(onChangeStarMassMultiplier);
+    function sunt() {
+      graphics.init(onChangeSunMassMultiplier);
       physics.resetStateToInitialConditions();
       animate();
     }
 
-    function onChangeStarMassMultiplier(starMassMultiplier) {
-      physics.updateFromUserInput(starMassMultiplier);
-      graphics.updateSunSize(starMassMultiplier);
+    function onChangeSunMassMultiplier(sunMassMultiplier) {
+      physics.updateFromUserInput(sunMassMultiplier);
+      graphics.updateSunSize(sunMassMultiplier);
     }
 
-    return { start };
+    return { sunt };
   })();
 
-  simulation.start();
+  simulation.sunt();
 })();
