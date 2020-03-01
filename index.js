@@ -148,10 +148,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     let previousEarthPositionWithOrbitPoint = null;
     const maxNumberOfOrbitVertices = 1000;
     const minimumOrbitVertexDistance = 0.1;
+    const earthRadiusCollisionFraction = 0.5;
+    const textureLoader = new THREE.TextureLoader();
 
-    function init(onChangeSunMassMultiplier) {
-      const textureLoader = new THREE.TextureLoader();
-
+    function init() {
       scene = new THREE.Scene();
       scene.background = textureLoader.load('textures/2k_stars.jpg');
 
@@ -188,15 +188,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       const ambientLight = new THREE.AmbientLight();
       scene.add(ambientLight);
 
-      orbit = createOrbit([]);
+      orbit = createOrbit();
       scene.add(orbit);
-
-      initDatGUI(onChangeSunMassMultiplier);
 
       window.addEventListener('resize', onWindowResize);
     }
 
-    function createOrbit(vertices) {
+    function createOrbit(vertices = []) {
       const material = new THREE.LineBasicMaterial({ color: 0xffffff });
       const geometry = new THREE.Geometry();
       geometry.vertices = vertices;
@@ -204,7 +202,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     }
 
     function createSphere(radius, x, y, texture) {
-      const geometry = new THREE.SphereGeometry(radius, 200, 200);
+      const geometry = new THREE.SphereGeometry(radius, 100, 100);
       const material = new THREE.MeshPhongMaterial({
         map: texture,
       });
@@ -212,18 +210,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       mesh.position.x = x;
       mesh.position.y = y;
       return mesh;
-    }
-
-    function initDatGUI(onChangeSunMassMultiplier) {
-      const guiParams = { sunMassMultiplier: 1 };
-      const gui = new dat.GUI();
-      gui
-        .add(guiParams, 'sunMassMultiplier', 0, 3)
-        .name('Mass of the sun')
-        .setValue(1)
-        .listen()
-        .onChange(onChangeSunMassMultiplier);
-      gui.open();
     }
 
     function calculateEarthPosition(distance, angle) {
@@ -235,25 +221,36 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     function drawScene(distance, angle, earthRotation, sunRotation) {
       const xyEarthPosition = calculateEarthPosition(distance, angle);
       const earthPosition = normalizeEarthPosition(xyEarthPosition);
-      drawEarth(earthPosition, earthRotation);
-      drawSun(sunRotation);
+      drawEarth(earthPosition);
       drawOrbit(earthPosition);
+
+      if (!physics.state.paused) {
+        rotateEarth(earthRotation);
+        rotateSun(sunRotation);
+      }
 
       renderer.render(scene, camera);
       controls.update();
+
+      if (isEarthCollidedWithTheSun()) {
+        physics.state.paused = true;
+      }
     }
 
     function normalizeEarthPosition(earthPosition) {
       return new THREE.Vector3(earthPosition.x, 0, earthPosition.y);
     }
 
-    function drawEarth(earthPosition, earthRotation) {
+    function drawEarth(earthPosition) {
       earth.position.x = earthPosition.x;
       earth.position.z = earthPosition.z;
+    }
+
+    function rotateEarth(earthRotation) {
       earth.rotation.y += earthRotation;
     }
 
-    function drawSun(sunRotation) {
+    function rotateSun(sunRotation) {
       sun.rotation.y += sunRotation;
     }
 
@@ -283,6 +280,17 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       }
     }
 
+    function isEarthCollidedWithTheSun() {
+      const sunCenter = sun.position;
+      const earthCenter = earth.position;
+      const sunRadius = sun.geometry.parameters.radius;
+      const earthRadius = earth.geometry.parameters.radius;
+      return (
+        sunCenter.distanceTo(earthCenter) <=
+        sunRadius + earthRadiusCollisionFraction * earthRadius
+      );
+    }
+
     function onWindowResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
@@ -294,7 +302,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       sun.geometry = new THREE.SphereGeometry(sliderValue, 15, 15);
     }
 
-    return { drawScene, updateSunSize, init };
+    function clearScene() {
+      scene.remove(orbit);
+      orbit = createOrbit();
+      scene.add(orbit);
+    }
+
+    return { drawScene, updateSunSize, init, clearScene };
   })();
 
   const simulation = (function() {
@@ -310,9 +324,34 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     }
 
     function start() {
-      graphics.init(onChangeSunMassMultiplier);
+      graphics.init();
+      controls.init();
       physics.resetStateToInitialConditions();
       animate();
+    }
+
+    return { start };
+  })();
+
+  const controls = (function() {
+    let gui, sunMassMultipierController;
+    const params = {
+      sunMassMultiplier: 1,
+      restart: new Function(),
+    };
+    const defaultSunMassMultiplierValue = 1;
+
+    function init() {
+      gui = new dat.GUI();
+      sunMassMultipierController = gui
+        .add(params, 'sunMassMultiplier', 0, 3)
+        .name('Mass of the sun')
+        .setValue(defaultSunMassMultiplierValue)
+        .onChange(onChangeSunMassMultiplier);
+      gui
+        .add(params, 'restart')
+        .name('Restart')
+        .onChange(onClickRestart);
     }
 
     function onChangeSunMassMultiplier(sunMassMultiplier) {
@@ -320,7 +359,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       graphics.updateSunSize(sunMassMultiplier);
     }
 
-    return { start };
+    function onClickRestart() {
+      physics.resetStateToInitialConditions();
+      graphics.clearScene();
+      sunMassMultipierController.setValue(defaultSunMassMultiplierValue);
+      physics.state.paused = false;
+    }
+
+    return { init };
   })();
 
   simulation.start();
