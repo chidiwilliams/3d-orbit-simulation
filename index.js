@@ -24,14 +24,29 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     // The higher the number, the more precise are the calculations and the slower the simulation.
     const numberOfCalculationsPerFrame = 1000;
 
-    // The length of the time increment, in seconds.
-    const deltaT = (3000 * 24) / numberOfCalculationsPerFrame;
+    const frameRate = 1 / 60;
 
-    // Rotation of earth (in radians) in one 16 millisecond frame.
-    const earthRotation = 0.05;
+    // Amount of time passed in a second in the simulation.
+    const simulationTimeFactor = 50 * 24 * 60 * 60;
+
+    // The length of the time increment before the next calculation, in seconds.
+    const deltaT =
+      (simulationTimeFactor * frameRate) / numberOfCalculationsPerFrame;
+
+    const earthRotationPerSecond = (2 * Math.PI) / (24 * 60 * 60);
+
+    const earthRotationPerFrame =
+      simulationTimeFactor * frameRate * earthRotationPerSecond;
+
+    const sunRotationPerSecond = (2 * Math.PI) / (27 * 24 * 60 * 60);
 
     // Rotation of sun (in radians) in one 16 millisecond frame.
-    const sunRotation = 0.01;
+    const sunRotationPerFrame =
+      simulationTimeFactor * frameRate * sunRotationPerSecond;
+
+    const earthAxialTilt = THREE.MathUtils.degToRad(23.43667);
+
+    const sunAxialTilt = THREE.MathUtils.degToRad(7.25);
 
     const initialConditions = {
       distance: {
@@ -138,8 +153,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       initialConditions,
       updateFromUserInput,
       state,
-      earthRotation,
-      sunRotation,
+      earthAxialTilt,
+      sunAxialTilt,
+      earthRotationPerFrame,
+      sunRotationPerFrame,
     };
   })();
 
@@ -150,6 +167,17 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     const minimumOrbitVertexDistance = 0.1;
     const earthRadiusCollisionFraction = 0.5;
     const textureLoader = new THREE.TextureLoader();
+
+    const earthRotationalAxis = new THREE.Vector3(
+      0,
+      physics.earthAxialTilt,
+      0,
+    ).normalize();
+    const sunRotationalAxis = new THREE.Vector3(
+      0,
+      physics.sunAxialTilt,
+      0,
+    ).normalize();
 
     function init() {
       scene = new THREE.Scene();
@@ -174,10 +202,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       const earthTexture = textureLoader.load('textures/2k_earth_daymap.jpg');
       earth = createSphere(0.25, 0, 0, earthTexture);
       scene.add(earth);
+      earth.rotation.z = physics.earthAxialTilt;
 
       const sunTexture = textureLoader.load('textures/2k_sun.jpg');
       sun = createSphere(1, 0, 0, sunTexture);
       scene.add(sun);
+      sun.rotation.z = physics.sunAxialTilt;
 
       camera.position.z = 15;
       camera.position.y = 5;
@@ -219,15 +249,20 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       return new THREE.Vector2(x, y);
     }
 
-    function drawScene(distance, angle, earthRotation, sunRotation) {
+    function drawScene(
+      distance,
+      angle,
+      earthRotationPerFrame,
+      sunRotationPerFrame,
+    ) {
       const xyEarthPosition = calculateEarthPosition(distance, angle);
       const earthPosition = normalizeEarthPosition(xyEarthPosition);
       drawEarth(earthPosition);
       drawOrbit(earthPosition);
 
       if (!physics.state.paused) {
-        rotateEarth(earthRotation);
-        rotateSun(sunRotation);
+        rotateEarth(earthRotationPerFrame);
+        rotateSun(sunRotationPerFrame);
       }
 
       renderer.render(scene, camera);
@@ -247,12 +282,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       earth.position.z = earthPosition.z;
     }
 
-    function rotateEarth(earthRotation) {
-      earth.rotation.y += earthRotation;
+    function rotateEarth(earthRotationPerFrame) {
+      earth.rotateOnAxis(earthRotationalAxis, earthRotationPerFrame);
     }
 
-    function rotateSun(sunRotation) {
-      sun.rotation.y += sunRotation;
+    function rotateSun(sunRotationPerFrame) {
+      sun.rotateOnAxis(sunRotationalAxis, sunRotationPerFrame);
     }
 
     function drawOrbit(earthPosition) {
@@ -319,8 +354,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       graphics.drawScene(
         physics.scaledDistance(),
         physics.state.angle.value,
-        physics.earthRotation,
-        physics.sunRotation,
+        physics.earthRotationPerFrame,
+        physics.sunRotationPerFrame,
       );
       requestAnimationFrame(animate);
     }
@@ -347,7 +382,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       gui = new dat.GUI();
       sunMassMultipierController = gui
         .add(params, 'sunMassMultiplier', 0, 3)
-        .name('Mass of the sun')
+        .name('Mass of the Sun')
         .setValue(defaultSunMassMultiplierValue)
         .onChange(onChangeSunMassMultiplier);
       gui
