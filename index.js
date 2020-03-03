@@ -161,7 +161,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   })();
 
   const graphics = (function() {
-    let scene, camera, earth, sun, renderer, controls, orbit;
+    let scene, camera, earth, sun, renderer, controls, orbit, sunLight;
     let previousEarthPositionWithOrbitPoint = null;
     const maxNumberOfOrbitVertices = 1000;
     const minimumOrbitVertexDistance = 0.1;
@@ -212,7 +212,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       camera.position.z = 15;
       camera.position.y = 5;
 
-      const sunLight = new THREE.PointLight(0xffffff, 4);
+      sunLight = new THREE.PointLight(0xffffff, 4);
       scene.add(sunLight);
 
       const ambientLight = new THREE.AmbientLight();
@@ -236,6 +236,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       const geometry = new THREE.SphereGeometry(radius, 100, 100);
       const material = new THREE.MeshPhongMaterial({
         map: texture,
+        emissive: 0xffffdd,
+        emissiveIntensity: 0,
       });
       const mesh = new THREE.Mesh(geometry, material);
       mesh.position.x = x;
@@ -332,6 +334,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     function updateSunSize(sliderValue) {
       sun.geometry.dispose();
       sun.geometry = new THREE.SphereGeometry(sliderValue, 15, 15);
+
+      sun.material.emissiveIntensity = 0.4 * (sliderValue - 1);
+
+      sunLight.intensity = 4 * sliderValue;
     }
 
     function clearScene() {
@@ -381,7 +387,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     function init() {
       gui = new dat.GUI();
       sunMassMultipierController = gui
-        .add(params, 'sunMassMultiplier', 0, 3)
+        .add(params, 'sunMassMultiplier', 0.1, 3)
         .name('Mass of the Sun')
         .setValue(defaultSunMassMultiplierValue)
         .onChange(onChangeSunMassMultiplier);
