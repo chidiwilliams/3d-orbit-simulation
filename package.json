@@ -11,11 +11,11 @@
   "author": "Chidi Williams",
   "license": "ISC",
   "devDependencies": {
-    "parcel": "^1.12.4"
+    "parcel": "^1.12.4",
+    "parcel-plugin-static-files-copy": "^2.3.1"
   },
   "dependencies": {
     "dat.gui": "^0.7.6",
-    "three": "^0.113.2",
-    "parcel-plugin-static-files-copy": "^2.3.1"
+    "three": "^0.113.2"
   }
 }
