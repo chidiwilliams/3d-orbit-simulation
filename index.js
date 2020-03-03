@@ -212,7 +212,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       camera.position.z = 15;
       camera.position.y = 5;
 
-      const sunLight = new THREE.PointLight(0xffffff, 2, 50);
+      const sunLight = new THREE.PointLight(0xffffff, 4);
       scene.add(sunLight);
 
       const ambientLight = new THREE.AmbientLight();
