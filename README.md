@@ -2,7 +2,6 @@
 
 A 3D simulation of the Earth orbiting the Sun.
 
-## Pending tasks
+## Improvements
 
-- [ ] Switch camera to sun and earth
-- [ ] Add simulation time controls
+- [ ] Add camera views for arbitrary points on the sun and earth

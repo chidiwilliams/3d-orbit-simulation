@@ -26,23 +26,13 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
     const frameRate = 1 / 60;
 
-    // Amount of time passed in a second in the simulation.
-    const simulationTimeFactor = 50 * 24 * 60 * 60;
+    const defaultSimulationSpeed = 50 * 24 * 60 * 60;
 
-    // The length of the time increment before the next calculation, in seconds.
-    const deltaT =
-      (simulationTimeFactor * frameRate) / numberOfCalculationsPerFrame;
+    const earthRotationPerSecond =
+      THREE.MathUtils.degToRad(360) / (24 * 60 * 60);
 
-    const earthRotationPerSecond = (2 * Math.PI) / (24 * 60 * 60);
-
-    const earthRotationPerFrame =
-      simulationTimeFactor * frameRate * earthRotationPerSecond;
-
-    const sunRotationPerSecond = (2 * Math.PI) / (27 * 24 * 60 * 60);
-
-    // Rotation of sun (in radians) in one 16 millisecond frame.
-    const sunRotationPerFrame =
-      simulationTimeFactor * frameRate * sunRotationPerSecond;
+    const sunRotationPerSecond =
+      THREE.MathUtils.degToRad(360) / (27 * 24 * 60 * 60);
 
     const earthAxialTilt = THREE.MathUtils.degToRad(23.43667);
 
@@ -64,6 +54,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       angle: { value: 0, speed: 0 },
       massOfTheSunKg: constants.massOfTheSunKg,
       paused: false,
+      // Amount of time passed in a second in the simulation
+      simulationSpeed: defaultSimulationSpeed,
     };
 
     function calculateDistanceAcceleration(state) {
@@ -110,6 +102,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
     // Calculates position of the earth
     function calculateNewPosition() {
+      // The length of the time increment before the next calculation, in seconds.
+      const deltaT =
+        (state.simulationSpeed * frameRate) / numberOfCalculationsPerFrame;
+
       // Calculate new distance
       const distanceAcceleration = calculateDistanceAcceleration(state);
       state.distance.speed = newValue(
@@ -142,8 +138,22 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     }
 
     // Updates the mass of the Sun
-    function updateFromUserInput(sunMassMultiplier) {
+    function updateSunMass(sunMassMultiplier) {
       state.massOfTheSunKg = constants.massOfTheSunKg * sunMassMultiplier;
+    }
+
+    function updateSimulationSpeed(simulationSpeed) {
+      state.simulationSpeed = simulationSpeed;
+    }
+
+    // Rotation of the Earth (in radians) in one 16 millisecond frame.
+    function earthRotationPerFrame() {
+      return state.simulationSpeed * frameRate * earthRotationPerSecond;
+    }
+
+    // Rotation of the Sun (in radians) in one 16 millisecond frame.
+    function sunRotationPerFrame() {
+      return state.simulationSpeed * frameRate * sunRotationPerSecond;
     }
 
     return {
@@ -151,12 +161,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       resetStateToInitialConditions,
       updatePosition,
       initialConditions,
-      updateFromUserInput,
+      updateSunMass,
       state,
       earthAxialTilt,
       sunAxialTilt,
       earthRotationPerFrame,
       sunRotationPerFrame,
+      updateSimulationSpeed,
+      defaultSimulationSpeed,
     };
   })();
 
@@ -360,8 +372,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       graphics.drawScene(
         physics.scaledDistance(),
         physics.state.angle.value,
-        physics.earthRotationPerFrame,
-        physics.sunRotationPerFrame,
+        physics.earthRotationPerFrame(),
+        physics.sunRotationPerFrame(),
       );
       requestAnimationFrame(animate);
     }
@@ -381,24 +393,40 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     const params = {
       sunMassMultiplier: 1,
       restart: new Function(),
+      speed: physics.defaultSimulationSpeed,
     };
     const defaultSunMassMultiplierValue = 1;
 
     function init() {
       gui = new dat.GUI();
-      sunMassMultipierController = gui
+
+      const paramatersFolder = gui.addFolder('Parameters');
+      sunMassMultipierController = paramatersFolder
         .add(params, 'sunMassMultiplier', 0.1, 3)
         .name('Mass of the Sun')
         .setValue(defaultSunMassMultiplierValue)
         .onChange(onChangeSunMassMultiplier);
-      gui
+      paramatersFolder.open();
+
+      const simulationFolder = gui.addFolder('Simulation');
+      simulationFolder
+        .add(params, 'speed', {
+          'Slow (1)': daysToSeconds(1),
+          'Medium (50)': daysToSeconds(50),
+          'Fast (365)': daysToSeconds(365),
+        })
+        .name('Speed (days/sec)')
+        .setValue(physics.defaultSimulationSpeed)
+        .onChange(onChangeSimulationSpeed);
+      simulationFolder
         .add(params, 'restart')
         .name('Restart')
         .onChange(onClickRestart);
+      simulationFolder.open();
     }
 
     function onChangeSunMassMultiplier(sunMassMultiplier) {
-      physics.updateFromUserInput(sunMassMultiplier);
+      physics.updateSunMass(sunMassMultiplier);
       graphics.updateSunSize(sunMassMultiplier);
     }
 
@@ -407,6 +435,14 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       graphics.clearScene();
       sunMassMultipierController.setValue(defaultSunMassMultiplierValue);
       physics.state.paused = false;
+    }
+
+    function onChangeSimulationSpeed(simulationSpeed) {
+      physics.updateSimulationSpeed(simulationSpeed);
+    }
+
+    function daysToSeconds(days) {
+      return days * 24 * 60 * 60;
     }
 
     return { init };
