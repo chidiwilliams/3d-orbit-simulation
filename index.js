@@ -9,16 +9,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       gravitationalConstant: 6.67408 * Math.pow(10, -11),
       earthSunDistanceMeters: 1.496 * Math.pow(10, 11),
       earthAngularVelocityMetersPerSecond: 1.990986 * Math.pow(10, -7),
-      massOfTheSunKg: 1.98855 * Math.pow(10, 30), // same as mass of sun
+      massOfTheSunKg: 1.98855 * Math.pow(10, 30),
     };
 
     // The length of one AU (Earth-Sun distance) in screen dimensions.
-    const pixelsInOneEarthSunDistancePerPixel = 10;
+    const screenUnitsInOneEarthSunDistance = 10;
 
     // A factor by which we scale the distance between the Sun and the Earth
     // in order to show it on screen
     const scaleFactor =
-      constants.earthSunDistanceMeters / pixelsInOneEarthSunDistancePerPixel;
+      constants.earthSunDistanceMeters / screenUnitsInOneEarthSunDistance;
 
     // The number of calculations of orbital path done in one 16 millisecond frame.
     // The higher the number, the more precise are the calculations and the slower the simulation.
@@ -26,26 +26,31 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
     const frameRate = 1 / 60;
 
+    // Amount of time passed in a second in the simulation
     const defaultSimulationSpeed = 50 * 24 * 60 * 60;
 
+    // Rotation of the earth (in radians) per second
     const earthRotationPerSecond =
       THREE.MathUtils.degToRad(360) / (24 * 60 * 60);
 
+    // Rotation of the sun (in radians) per second
     const sunRotationPerSecond =
       THREE.MathUtils.degToRad(360) / (27 * 24 * 60 * 60);
 
+    // Angle between earth's rotational axis and orbital axis
     const earthAxialTilt = THREE.MathUtils.degToRad(23.43667);
 
+    // Angle between sun's rotational axis and orbital axis
     const sunAxialTilt = THREE.MathUtils.degToRad(7.25);
 
     const initialConditions = {
       distance: {
-        value: 1.496 * Math.pow(10, 11), // 1 AU
-        speed: 0.0,
+        value: constants.earthSunDistanceMeters,
+        speed: 0,
       },
       angle: {
-        value: Math.PI / 6, // arbitrary
-        speed: 1.990986 * Math.pow(10, -7),
+        value: Math.PI / 6, // arbitrary start angle
+        speed: constants.earthAngularVelocityMetersPerSecond,
       },
     };
 
@@ -54,10 +59,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       angle: { value: 0, speed: 0 },
       massOfTheSunKg: constants.massOfTheSunKg,
       paused: false,
-      // Amount of time passed in a second in the simulation
       simulationSpeed: defaultSimulationSpeed,
     };
 
+    // Derived from the partial derivatives of the Lagrangian with respect
+    // to the distance and time derivate
     function calculateDistanceAcceleration(state) {
       return (
         state.distance.value * Math.pow(state.angle.speed, 2) -
@@ -66,12 +72,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       );
     }
 
+    // Derived from the partial derivates of the Lagrangian with respect
+    // to the angle and time derivative
     function calculateAngleAcceleration(state) {
       return (
         (-2.0 * state.distance.speed * state.angle.speed) / state.distance.value
       );
     }
 
+    // Calculated the new speed from the current speed and acceleration: v = u + at
     function newValue(currentValue, deltaT, derivative) {
       return currentValue + deltaT * derivative;
     }
@@ -137,7 +146,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       }
     }
 
-    // Updates the mass of the Sun
     function updateSunMass(sunMassMultiplier) {
       state.massOfTheSunKg = constants.massOfTheSunKg * sunMassMultiplier;
     }
@@ -174,10 +182,21 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
   const graphics = (function() {
     let scene, camera, earth, sun, renderer, controls, orbit, sunLight;
+
+    // Last position of the earth to draw the orbital line from
     let previousEarthPositionWithOrbitPoint = null;
+
+    // Maximum number of orbit vertices to draw (to conserve memory)
     const maxNumberOfOrbitVertices = 1000;
+
+    // Minimum distance between consecutive orbit vertices (smaller distances
+    // are barely visible and do not need to be drawn)
     const minimumOrbitVertexDistance = 0.1;
+
+    // Fraction of the earth's diameter to intersect with the sun's diameter
+    // above which a collision will be initiated
     const earthRadiusCollisionFraction = 0.5;
+
     const textureLoader = new THREE.TextureLoader();
 
     const earthRotationalAxis = new THREE.Vector3(
@@ -185,6 +204,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       physics.earthAxialTilt,
       0,
     ).normalize();
+
     const sunRotationalAxis = new THREE.Vector3(
       0,
       physics.sunAxialTilt,
@@ -235,6 +255,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       window.addEventListener('resize', onWindowResize);
     }
 
+    // Creates a new orbital line from given vertices and adds it to the scene
     function createOrbit(vertices = []) {
       const material = new THREE.LineBasicMaterial({ color: 0xffffff });
       const geometry = new THREE.Geometry();
@@ -244,6 +265,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       return orbit;
     }
 
+    // Create a new sphere
     function createSphere(radius, x, y, texture) {
       const geometry = new THREE.SphereGeometry(radius, 100, 100);
       const material = new THREE.MeshPhongMaterial({
@@ -257,20 +279,21 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       return mesh;
     }
 
-    function calculateEarthPosition(distance, angle) {
+    // Calculates earth's 3D position from polar coordinates
+    function getEarthPosition(distance, angle) {
       const x = Math.cos(angle) * distance;
-      const y = Math.sin(-angle) * distance;
-      return new THREE.Vector2(x, y);
+      const z = Math.sin(-angle) * distance;
+      return new THREE.Vector3(x, 0, z);
     }
 
+    // Updates all objects and renders the scene
     function drawScene(
-      distance,
-      angle,
+      earthDistance,
+      earthAngle,
       earthRotationPerFrame,
       sunRotationPerFrame,
     ) {
-      const xyEarthPosition = calculateEarthPosition(distance, angle);
-      const earthPosition = normalizeEarthPosition(xyEarthPosition);
+      const earthPosition = getEarthPosition(earthDistance, earthAngle);
       drawEarth(earthPosition);
       drawOrbit(earthPosition);
 
@@ -285,10 +308,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       if (isEarthCollidedWithTheSun()) {
         physics.state.paused = true;
       }
-    }
-
-    function normalizeEarthPosition(earthPosition) {
-      return new THREE.Vector3(earthPosition.x, 0, earthPosition.y);
     }
 
     function drawEarth(earthPosition) {
@@ -329,41 +348,52 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     function isEarthCollidedWithTheSun() {
       const sunCenter = sun.position;
       const earthCenter = earth.position;
-      const sunRadius = sun.geometry.parameters.radius;
-      const earthRadius = earth.geometry.parameters.radius;
-      return (
-        sunCenter.distanceTo(earthCenter) <=
-        sunRadius + earthRadiusCollisionFraction * earthRadius
+      const collisionIntersection = sunEarthCollisionIntersection(
+        sun.geometry.parameters.radius,
+        earth.geometry.parameters.radius,
       );
+      return sunCenter.distanceTo(earthCenter) <= collisionIntersection;
     }
 
+    // Sun-earth distance below which a collision will be initiated
+    function sunEarthCollisionIntersection(sunRadius, earthRadius) {
+      return sunRadius + earthRadiusCollisionFraction * earthRadius;
+    }
+
+    // Updates graphics on window resize
     function onWindowResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    function updateSunSize(sliderValue) {
+    // Redraws the sun based on the value of the mass multiplier
+    function updateSunMass(massMultiplier) {
       sun.geometry.dispose();
-      sun.geometry = new THREE.SphereGeometry(sliderValue, 15, 15);
+      sun.geometry = new THREE.SphereGeometry(massMultiplier, 15, 15);
 
-      sun.material.emissiveIntensity = 0.4 * (sliderValue - 1);
+      // Increase sun material emissive intensity with a multiplier
+      // (subtract 1 to convert zero-value from 1 to 0)
+      sun.material.emissiveIntensity = 0.4 * (massMultiplier - 1);
 
-      sunLight.intensity = 4 * sliderValue;
+      // Update sun point light intensity with a multiplier
+      sunLight.intensity = 4 * massMultiplier;
     }
 
+    // Clears scene before simulation restart
     function clearScene() {
       disposeOrbit();
       orbit = createOrbit();
     }
 
+    // Remove orbit from scene safely
     function disposeOrbit() {
       orbit.geometry.dispose();
       orbit.material.dispose();
       scene.remove(orbit);
     }
 
-    return { drawScene, updateSunSize, init, clearScene };
+    return { drawScene, updateSunMass, init, clearScene };
   })();
 
   const simulation = (function() {
@@ -427,7 +457,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
     function onChangeSunMassMultiplier(sunMassMultiplier) {
       physics.updateSunMass(sunMassMultiplier);
-      graphics.updateSunSize(sunMassMultiplier);
+      graphics.updateSunMass(sunMassMultiplier);
     }
 
     function onClickRestart() {
