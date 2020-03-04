@@ -213,7 +213,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
     function init() {
       scene = new THREE.Scene();
-      scene.background = textureLoader.load('textures/2k_stars.jpg');
 
       camera = new THREE.PerspectiveCamera(
         75,
@@ -230,6 +229,16 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       controls = new OrbitControls(camera, renderer.domElement);
 
       document.body.appendChild(renderer.domElement);
+
+      {
+        const geometry = new THREE.SphereGeometry(100, 32, 32);
+        const material = new THREE.MeshBasicMaterial({
+          side: THREE.BackSide,
+          map: textureLoader.load('textures/2k_stars.jpg'),
+        });
+        const galaxy = new THREE.Mesh(geometry, material);
+        scene.add(galaxy);
+      }
 
       const earthTexture = textureLoader.load('textures/2k_earth_daymap.jpg');
       earth = createSphere(0.25, 0, 0, earthTexture);
