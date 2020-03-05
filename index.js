@@ -236,8 +236,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
           side: THREE.BackSide,
           map: textureLoader.load('textures/2k_stars.jpg'),
         });
-        const galaxy = new THREE.Mesh(geometry, material);
-        scene.add(galaxy);
+        const universe = new THREE.Mesh(geometry, material);
+        scene.add(universe);
       }
 
       const earthTexture = textureLoader.load('textures/2k_earth_daymap.jpg');
