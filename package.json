@@ -1,9 +1,12 @@
 {
   "name": "3d-orbit-simulation",
   "version": "1.0.0",
-  "description": "3D simulation of a planet orbiting a star",
+  "description": "A 3D simulation of the Earth orbiting the Sun",
   "main": "dist/index.js",
+  "homepage": "http://chidiwilliams.github.io/3d-orbit-simulation",
+  "repository": "https://github.com/chidiwilliams/3d-orbit-simulation",
   "scripts": {
+    "deploy": "npm run build && gh-pages -d dist",
     "dev": "parcel index.html",
     "build": "parcel build index.html --public-url .",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,7 +14,9 @@
   "author": "Chidi Williams",
   "license": "ISC",
   "devDependencies": {
+    "gh-pages": "^2.2.0",
     "parcel": "^1.12.4",
+    "parcel-plugin-ogimage": "^1.1.0",
     "parcel-plugin-static-files-copy": "^2.3.1"
   },
   "dependencies": {
