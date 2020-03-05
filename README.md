@@ -1,6 +1,6 @@
-# 3D Orbit Simulation
+<img src="thumbnail.png" width="150px" alt="Image of the sun" />
 
-![Image of the sun](thumbnail.png)
+# 3D Orbit Simulation
 
 A 3D simulation of the Earth orbiting the Sun.
 
