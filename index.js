@@ -181,7 +181,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
   })();
 
   const graphics = (function() {
-    let scene, camera, earth, sun, renderer, controls, orbit, sunLight;
+    let scene,
+      camera,
+      earth,
+      sun,
+      renderer,
+      controls,
+      orbit,
+      sunLight,
+      loaded = false;
 
     // Last position of the earth to draw the orbital line from
     let previousEarthPositionWithOrbitPoint = null;
@@ -197,7 +205,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
     // above which a collision will be initiated
     const earthRadiusCollisionFraction = 0.5;
 
-    const textureLoader = new THREE.TextureLoader();
+    const loadingManager = new THREE.LoadingManager();
+    loadingManager.onLoad = () => {
+      loaded = true;
+    };
 
     const earthRotationalAxis = new THREE.Vector3(
       0,
@@ -232,20 +243,27 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
       {
         const geometry = new THREE.SphereGeometry(100, 32, 32);
+        const starsTexture = new THREE.TextureLoader(loadingManager).load(
+          'textures/2k_stars.jpg',
+        );
         const material = new THREE.MeshBasicMaterial({
           side: THREE.BackSide,
-          map: textureLoader.load('textures/2k_stars.jpg'),
+          map: starsTexture,
         });
         const universe = new THREE.Mesh(geometry, material);
         scene.add(universe);
       }
 
-      const earthTexture = textureLoader.load('textures/2k_earth_daymap.jpg');
+      const earthTexture = new THREE.TextureLoader(loadingManager).load(
+        'textures/2k_earth_daymap.jpg',
+      );
       earth = createSphere(0.25, 0, 0, earthTexture);
       scene.add(earth);
       earth.rotation.z = physics.earthAxialTilt;
 
-      const sunTexture = textureLoader.load('textures/2k_sun.jpg');
+      const sunTexture = new THREE.TextureLoader(loadingManager).load(
+        'textures/2k_sun.jpg',
+      );
       sun = createSphere(1, 0, 0, sunTexture);
       scene.add(sun);
       sun.rotation.z = physics.sunAxialTilt;
@@ -402,18 +420,25 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
       scene.remove(orbit);
     }
 
-    return { drawScene, updateSunMass, init, clearScene };
+    // Returns true if all assets are loaded
+    function isLoaded() {
+      return loaded;
+    }
+
+    return { drawScene, updateSunMass, init, clearScene, isLoaded };
   })();
 
   const simulation = (function() {
     function animate() {
-      physics.updatePosition();
-      graphics.drawScene(
-        physics.scaledDistance(),
-        physics.state.angle.value,
-        physics.earthRotationPerFrame(),
-        physics.sunRotationPerFrame(),
-      );
+      if (graphics.isLoaded()) {
+        physics.updatePosition();
+        graphics.drawScene(
+          physics.scaledDistance(),
+          physics.state.angle.value,
+          physics.earthRotationPerFrame(),
+          physics.sunRotationPerFrame(),
+        );
+      }
       requestAnimationFrame(animate);
     }
 
