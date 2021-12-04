@@ -2,7 +2,6 @@
   "name": "3d-orbit-simulation",
   "version": "1.0.0",
   "description": "A 3D simulation of the Earth orbiting the Sun",
-  "main": "dist/index.js",
   "homepage": "http://chidiwilliams.github.io/3d-orbit-simulation",
   "repository": "https://github.com/chidiwilliams/3d-orbit-simulation",
   "scripts": {
