@@ -15,12 +15,12 @@
   "license": "ISC",
   "devDependencies": {
     "gh-pages": "^2.2.0",
-    "parcel": "^1.12.4",
+    "parcel": "^2.0.1",
     "parcel-plugin-ogimage": "^1.1.0",
     "parcel-plugin-static-files-copy": "^2.3.1"
   },
   "dependencies": {
     "dat.gui": "^0.7.6",
-    "three": "^0.113.2"
+    "three": "0.113.2"
   }
 }
